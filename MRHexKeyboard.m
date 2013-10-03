@@ -47,7 +47,7 @@ static UIColor *sGrayColour = nil;
 
 - (void)createButtons
 {
-    CGRect rect = CGRectMake(0.0f, 0.0f, (floor(self.bounds.size.width / 3.0f) + 0.3f), (((kKeyboardHeight - 5.0f) / 6.0f)) + 0.3f);
+    CGRect rect = CGRectMake(0.0f, 0.0f, (floor(self.bounds.size.width / 3.0f) + 0.3f), (((kKeyboardHeight - 5.0f) / 6.0f) + 0.3f));
 
     /* Makes the numerical buttons */
     for (NSInteger num = 1; num <= 15; num++) {
