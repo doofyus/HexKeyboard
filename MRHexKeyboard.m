@@ -7,6 +7,8 @@
 
 #import "MRHexKeyboard.h"
 
+const CGFloat kKeyboardHeight = 305.0f;
+
 static UIColor *sGrayColour = nil;
 
 @interface MRHexKeyboard () {
@@ -28,7 +30,7 @@ static UIColor *sGrayColour = nil;
 
 - (MRHexKeyboard *)initWithTextField:(UITextField *)textField
 {
-    self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 320.0f, 305.0f)];
+    self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 320.0f, kKeyboardHeight)];
 
     if (self) {
         _textField = textField;
@@ -45,7 +47,7 @@ static UIColor *sGrayColour = nil;
 
 - (void)createButtons
 {
-    CGRect rect = CGRectMake(0.0f, 0.0f, (floor(self.bounds.size.width / 3.0f) + 0.3f), (((self.bounds.size.height - 5.0f) / 6.0f)) + 0.3f);
+    CGRect rect = CGRectMake(0.0f, 0.0f, (floor(self.bounds.size.width / 3.0f) + 0.3f), (((kKeyboardHeight - 5.0f) / 6.0f)) + 0.3f);
 
     /* Makes the numerical buttons */
     for (NSInteger num = 1; num <= 15; num++) {
@@ -129,7 +131,7 @@ static UIColor *sGrayColour = nil;
     }
 
     if (num > 3) { /* The row multiplied by row's height */
-        point.y = floor((num - 1) / 3.0f) * (self.bounds.size.height / 6.0f);
+        point.y = floor((num - 1) / 3.0f) * (kKeyboardHeight / 6.0f);
     }
 
     return point;
