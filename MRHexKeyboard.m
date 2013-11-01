@@ -166,7 +166,19 @@ static UIColor *sGrayColour = nil;
                 [string appendFormat:@"0x%@", button.titleLabel.text];
             }
             else {
-                [string appendString:button.titleLabel.text];
+                if (string.length > 2) {
+                    NSString *lastTwoChars = [string substringFromIndex:(string.length - 2)];
+
+                    if ([lastTwoChars rangeOfString:@"x"].location == NSNotFound) {
+                        [string appendFormat:@" 0x%@", button.titleLabel.text];
+                    }
+                    else {
+                        [string appendString:button.titleLabel.text];
+                    }
+                }
+                else {
+                    [string appendString:button.titleLabel.text];
+                }
             }
         }
         else if (_textField.text.length > 0) {
