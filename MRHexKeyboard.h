@@ -7,9 +7,7 @@
 
 @import UIKit;
 
-@interface MRHexKeyboard : UIView
-
-- (MRHexKeyboard *)initWithTextField:(UITextField *)textField;
+@interface MRHexKeyboard : UIView <UITextFieldDelegate>
 
 @property(nonatomic, assign) CGFloat height;
 

@@ -7,13 +7,35 @@
 
 #import "MRHexKeyboard.h"
 
+@interface UITextField (CustomKeyboard)
+
+- (NSRange)selectedRange;
+
+@end
+
+@implementation UITextField (CustomKeyboard)
+
+- (NSRange)selectedRange {
+    UITextRange *tr = [self selectedTextRange];
+    
+    NSInteger spos = [self offsetFromPosition:self.beginningOfDocument toPosition:tr.start];
+    NSInteger epos = [self offsetFromPosition:self.beginningOfDocument toPosition:tr.end];
+    
+    return NSMakeRange(spos, epos - spos);
+}
+
+@end
+
 CGFloat minKeyboardHeight;
 
 static UIColor *sGrayColour = nil;
 
-@interface MRHexKeyboard ()
+@interface MRHexKeyboard () <UIInputViewAudioFeedback>
 
-@property(nonatomic, weak) UITextField *textField;
+@property(nonatomic, weak) id<UITextInput> input;
+
+@property(nonatomic, assign) BOOL tfShouldChange;
+@property(nonatomic, assign) BOOL tvShouldChange;
 
 @property(nonatomic, strong) UIButton * zeroxButton;
 @property(nonatomic, strong) UIButton * zeroButton;
@@ -27,15 +49,13 @@ static UIColor *sGrayColour = nil;
 
 @implementation MRHexKeyboard
 
-- (MRHexKeyboard *)initWithTextField:(UITextField *)textField
+- (instancetype)init
 {
     self = [super init];
 
     if (self) {
         minKeyboardHeight = MIN([UIScreen mainScreen].bounds.size.width - 100, 305);
         _height = minKeyboardHeight;
-        
-        self.textField = textField;
 
         sGrayColour = [UIColor lightTextColor];
 
@@ -52,7 +72,7 @@ static UIColor *sGrayColour = nil;
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDown];
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragEnter];
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragExit];
-        [button addTarget:self action:@selector(changeTextFieldText:) forControlEvents:UIControlEventTouchUpInside];
+        [button addTarget:self action:@selector(deleteBackward:) forControlEvents:UIControlEventTouchUpInside];
         
         [self addSubview:button];
         
@@ -71,9 +91,51 @@ static UIColor *sGrayColour = nil;
         self.zeroButton = [self makeButtonWithTitle:@"0" grayBackground:NO];
         
         self.positionConstraints = @[];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(checkInput:) name:UITextFieldTextDidBeginEditingNotification object:nil];
     }
     
     return self;
+}
+
+// This is used to obtain the current text field/view that is now the first responder
+- (void)checkInput:(NSNotification *)notification {
+    UITextField *field = notification.object;
+    
+    if (field.inputView && self == field.inputView) {
+        _input = field;
+        
+        _tvShouldChange = NO;
+        _tfShouldChange = NO;
+        if ([_input isKindOfClass:[UITextField class]]) {
+            id<UITextFieldDelegate> del = [(UITextField *)_input delegate];
+            if ([del respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
+                _tfShouldChange = YES;
+            }
+        } else if ([_input isKindOfClass:[UITextView class]]) {
+            id<UITextViewDelegate> del = [(UITextView *)_input delegate];
+            if ([del respondsToSelector:@selector(textView:shouldChangeTextInRange:replacementText:)]) {
+                _tvShouldChange = YES;
+            }
+        }
+    }
+}
+
+- (BOOL)enableInputClicksWhenVisible {
+    return YES;
+}
+
+- (void)setTextField:(id<UITextInput>)textField {
+    if(_input == textField) return;
+    UITextField *tf = (UITextField *)_input;
+    if(tf.delegate == self) {
+        tf.delegate = nil;
+    }
+    _input = textField;
+    tf = (UITextField *)_input;
+    if(tf.delegate == nil) {
+        tf.delegate = self;
+    }
 }
 
 - (void)setDisplay0xButton:(BOOL)display0xButton {
@@ -174,61 +236,114 @@ static UIColor *sGrayColour = nil;
 
 - (void)changeTextFieldText:(UIButton *)button
 {
-    if (_textField) {
-        NSMutableString *string = [NSMutableString stringWithString:_textField.text];
-
-        if (button.titleLabel.text) {
-            if ([button.titleLabel.text isEqualToString:@"0x"]) {
-                if (string.length == 0) {
-                    [string appendString:@"0x"];
-                }
-                else {
-                    [string appendString:@" 0x"];
-                }
-            }
-            else if(self.add0x) {
-                if (string.length == 0) {
-                    [string appendFormat:@"0x%@", button.titleLabel.text];
-                } else {
-                    if (string.length > 2) {
-                        NSString *lastTwoChars = [string substringFromIndex:(string.length - 2)];
-                        
-                        if ([lastTwoChars rangeOfString:@"x"].location == NSNotFound) {
-                            [string appendFormat:@" 0x%@", button.titleLabel.text];
-                        } else {
-                            [string appendString:button.titleLabel.text];
-                        }
-                    } else {
-                        [string appendString:button.titleLabel.text];
-                    }
-                }
-            } else {
-                [string appendString:button.titleLabel.text];
-            }
-        }
-        else if (_textField.text.length > 0) {
-            NSRange deleteRange;
-            NSString *lastChar = [string substringFromIndex:(string.length - 1)];
-
-            if ([lastChar isEqualToString:@"x"]) {
-                if (string.length > 2) {
-                    deleteRange = NSMakeRange((string.length - 3), 3);
-                }
-                else {
-                    deleteRange = NSMakeRange((string.length - 2), 2);
-                }
-            }
-            else {
-                deleteRange = NSMakeRange((string.length - 1), 1);
-            }
-
-            [string deleteCharactersInRange:deleteRange];
-        }
-
-        _textField.text = string;
-    }
-
     [self changeButtonBackgroundColourForHighlight:button];
+    if(_input == nil) return;
+    
+    NSString *text = button.titleLabel.text;
+    if ([_input respondsToSelector:@selector(shouldChangeTextInRange:replacementText:)]) {
+        if ([_input shouldChangeTextInRange:[_input selectedTextRange] replacementText:text]) {
+            [_input insertText:text];
+        }
+    } else if (_tfShouldChange) {
+        NSRange range = [(UITextField *)_input selectedRange];
+        if ([[(UITextField *)_input delegate] textField:(UITextField *)_input shouldChangeCharactersInRange:range replacementString:text]) {
+            [_input insertText:text];
+        }
+    } else if (_tvShouldChange) {
+        NSRange range = [(UITextView *)_input selectedRange];
+        if ([[(UITextView *)_input delegate] textView:(UITextView *)_input shouldChangeTextInRange:range replacementText:text]) {
+            [_input insertText:text];
+        }
+    } else {
+        [_input insertText:text];
+    }
+    [[UIDevice currentDevice] playInputClick];
+}
+
+- (void)deleteBackward:(UIButton *)button {
+    [self changeButtonBackgroundColourForHighlight:button];
+    if(_input == nil) return;
+    
+    if ([_input respondsToSelector:@selector(shouldChangeTextInRange:replacementText:)]) {
+        UITextRange *range = [_input selectedTextRange];
+        if ([range.start isEqual:range.end]) {
+            UITextPosition *newStart = [_input positionFromPosition:range.start inDirection:UITextLayoutDirectionLeft offset:1];
+            range = [_input textRangeFromPosition:newStart toPosition:range.end];
+        }
+        if ([_input shouldChangeTextInRange:range replacementText:@""]) {
+            [_input deleteBackward];
+        }
+    } else if (_tfShouldChange) {
+        NSRange range = [(UITextField *)_input selectedRange];
+        if (range.length == 0) {
+            if (range.location > 0) {
+                range.location--;
+                range.length = 1;
+            }
+        }
+        if ([[(UITextField *)_input delegate] textField:(UITextField *)_input shouldChangeCharactersInRange:range replacementString:@""]) {
+            [_input deleteBackward];
+        }
+    } else if (_tvShouldChange) {
+        NSRange range = [(UITextView *)_input selectedRange];
+        if (range.length == 0) {
+            if (range.location > 0) {
+                range.location--;
+                range.length = 1;
+            }
+        }
+        if ([[(UITextView *)_input delegate] textView:(UITextView *)_input shouldChangeTextInRange:range replacementText:@""]) {
+            [_input deleteBackward];
+        }
+    } else {
+        [_input deleteBackward];
+    }
+    [[UIDevice currentDevice] playInputClick];
+}
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    if(textField != _input) return YES;
+    
+    // Reject appending non-digit characters
+    if (string.length > 0 && range.length == 0 &&
+        ![[NSCharacterSet characterSetWithCharactersInString:@"0123456789ABCDEF"] characterIsMember:[string characterAtIndex:0]]) {
+        return NO;
+    }
+    
+    if(self.add0x) {
+        if(string.length > 0) { // insert
+            // Auto-add 0x after inserting first nibble
+            if(range.location == 0) {
+                textField.text = [NSString stringWithFormat:@"0x%@", string];
+                return NO;
+            }
+            
+            // Auto-add 0x after appending second nibble
+            if (range.length == 0 && range.location >= 4 &&
+                (range.location - 4) % 5 == 0) {
+                textField.text = [NSString stringWithFormat:@"%@ 0x%@", textField.text, string];
+                return NO;
+            }
+        } else { // delete
+            if(range.location == 2) {
+                range.location -= 2;
+                range.length += 2;
+                textField.text = [textField.text stringByReplacingCharactersInRange:range withString:@""];
+                return NO;
+            }
+            
+            // Delete 0x when deleting the first nibble
+            if (range.length == 1 && range.location >= 7 &&
+                (range.location - 7) % 5 == 0) {
+                range.location -= 3;
+                range.length += 3;
+                textField.text = [textField.text stringByReplacingCharactersInRange:range withString:@""];
+                return NO;
+            }
+        }
+    }
+    
+    return YES;
 }
 
 @end
