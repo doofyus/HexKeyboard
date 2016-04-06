@@ -5,6 +5,8 @@
 //  Copyright (c) 2013 Mikk Rätsep. All rights reserved.
 //
 
+@import UIKit;
+
 @interface MRHexKeyboard : UIView
 
 - (MRHexKeyboard *)initWithTextField:(UITextField *)textField;
