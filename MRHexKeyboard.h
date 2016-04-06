@@ -11,4 +11,10 @@
 
 - (MRHexKeyboard *)initWithTextField:(UITextField *)textField;
 
+@property(nonatomic, assign) CGFloat height;
+
+@property(nonatomic, assign) BOOL display0xButton;
+
+@property(nonatomic, assign) BOOL add0x;
+
 @end

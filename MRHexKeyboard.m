@@ -7,22 +7,21 @@
 
 #import "MRHexKeyboard.h"
 
-const CGFloat kKeyboardHeight = 305.0f;
+CGFloat minKeyboardHeight;
 
 static UIColor *sGrayColour = nil;
 
-@interface MRHexKeyboard () {
-    __weak UITextField *_textField;
-}
+@interface MRHexKeyboard ()
 
-- (void)createButtons;
-- (void)makeButtonWithRect:(CGRect)rect title:(NSString *)title grayBackground:(BOOL)grayBackground;
+@property(nonatomic, weak) UITextField *textField;
 
-- (NSString *)buttonTitleForNumber:(NSInteger)num;
-- (CGPoint)buttonOriginPointForNumber:(NSInteger)num;
+@property(nonatomic, strong) UIButton * zeroxButton;
+@property(nonatomic, strong) UIButton * zeroButton;
+@property(nonatomic, strong) UIButton * deleteButton;
 
-- (void)changeButtonBackgroundColourForHighlight:(UIButton *)button;
-- (void)changeTextFieldText:(UIButton *)button;
+@property(nonatomic, strong) NSArray<UIButton *> * numberButtons;
+
+@property(nonatomic, strong) NSArray<NSLayoutConstraint *> * positionConstraints;
 
 @end
 
@@ -30,60 +29,108 @@ static UIColor *sGrayColour = nil;
 
 - (MRHexKeyboard *)initWithTextField:(UITextField *)textField
 {
-    self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 320.0f, kKeyboardHeight)];
+    self = [super init];
 
     if (self) {
-        _textField = textField;
+        minKeyboardHeight = MIN([UIScreen mainScreen].bounds.size.width - 100, 305);
+        _height = minKeyboardHeight;
+        
+        self.textField = textField;
 
         sGrayColour = [UIColor lightTextColor];
 
         self.backgroundColor = [UIColor lightGrayColor];
+        
+        _display0xButton = YES;
+        _add0x = YES;
+        
+        UIButton *button = [[UIButton alloc] init];
+        button.translatesAutoresizingMaskIntoConstraints = NO;
+        
+        button.backgroundColor = sGrayColour;
+        [button setImage:[UIImage imageNamed:@"deleteButton"] forState:UIControlStateNormal];
+        [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDown];
+        [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragEnter];
+        [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragExit];
+        [button addTarget:self action:@selector(changeTextFieldText:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [self addSubview:button];
+        
+        self.deleteButton = button;
 
-        [self createButtons];
+        NSMutableArray<UIButton *> * buttons = [NSMutableArray arrayWithCapacity:15];
+        /* Makes the numerical buttons */
+        for (NSInteger num = 1; num <= 15; num++) {
+            [buttons addObject:[self makeButtonWithTitle:[self buttonTitleForNumber:num] grayBackground:NO]];
+        }
+        self.numberButtons = buttons;
+        
+        self.zeroxButton = [self makeButtonWithTitle:@"0x" grayBackground:YES];
+        self.display0xButton = _display0xButton;
+        
+        self.zeroButton = [self makeButtonWithTitle:@"0" grayBackground:NO];
+        
+        self.positionConstraints = @[];
     }
     
     return self;
 }
 
-- (void)createButtons
-{
-    CGRect rect = CGRectMake(0.0f, 0.0f, (floor(self.bounds.size.width / 3.0f) + 0.3f), (((kKeyboardHeight - 5.0f) / 6.0f) + 0.3f));
-
-    /* Makes the numerical buttons */
-    for (NSInteger num = 1; num <= 15; num++) {
-        rect.origin = [self buttonOriginPointForNumber:num];
-
-        [self makeButtonWithRect:rect title:[self buttonTitleForNumber:num] grayBackground:NO];
-    }
-
-    /* Makes the '0x' button */
-    rect.origin = [self buttonOriginPointForNumber:16];
-
-    [self makeButtonWithRect:rect title:@"0x" grayBackground:YES];
-
-    /* Makes the '0' button */
-    rect.origin = [self buttonOriginPointForNumber:17];
-
-    [self makeButtonWithRect:rect title:@"0" grayBackground:NO];
-
-    /* Makes the 'delete' button */
-    rect.origin = [self buttonOriginPointForNumber:18];
-
-    UIButton *button = [[UIButton alloc] initWithFrame:rect];
-
-    button.backgroundColor = sGrayColour;
-    [button setImage:[UIImage imageNamed:@"deleteButton"] forState:UIControlStateNormal];
-    [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDown];
-    [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragEnter];
-    [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragExit];
-    [button addTarget:self action:@selector(changeTextFieldText:) forControlEvents:UIControlEventTouchUpInside];
-
-    [self addSubview:button];
+- (void)setDisplay0xButton:(BOOL)display0xButton {
+    _display0xButton = display0xButton;
+    self.zeroxButton.hidden = !_display0xButton;
 }
 
-- (void)makeButtonWithRect:(CGRect)rect title:(NSString *)title grayBackground:(BOOL)grayBackground
+- (void)setHeight:(CGFloat)height {
+    height = MAX(height, minKeyboardHeight);
+    CGRect frame = self.frame;
+    frame.size.height = height;
+    frame.origin.y += _height - height;
+    _height = height;
+    self.frame = frame;
+}
+
+- (void)updateConstraints {
+    [super updateConstraints];
+    [self removeConstraints:self.positionConstraints];
+    NSMutableArray <NSLayoutConstraint *> * constraints = [NSMutableArray arrayWithCapacity:45];
+    if(self.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) {
+        for(NSInteger num = 0; num < 15; num += 3) {
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2]}];
+            [constraints addObjectsFromArray:cs];
+        }
+        NSArray * lastButtons = @[self.zeroxButton, self.zeroButton, self.deleteButton];
+        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
+        [constraints addObjectsFromArray:cs];
+        
+        for(NSInteger num = 0; num < 3; num += 1) {
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+3],@"b3":self.numberButtons[num+6],@"b4":self.numberButtons[num+9],@"b5":self.numberButtons[num+12],@"b6":lastButtons[num]}];
+            [constraints addObjectsFromArray:cs];
+        }
+    } else {
+        NSArray * lastButtons = @[self.zeroButton, self.zeroxButton, self.deleteButton];
+        for(NSInteger num = 0; num < 15; num += 5) {
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2],@"b4":self.numberButtons[num+3],@"b5":self.numberButtons[num+4],@"b6":lastButtons[num/5]}];
+            [constraints addObjectsFromArray:cs];
+        }
+        
+        
+        for(NSInteger num = 0; num < 5; num += 1) {
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+5],@"b3":self.numberButtons[num+10]}];
+            [constraints addObjectsFromArray:cs];
+        }
+        
+        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
+        [constraints addObjectsFromArray:cs];
+    }
+    self.positionConstraints = constraints;
+    [self addConstraints:self.positionConstraints];
+}
+
+- (UIButton *)makeButtonWithTitle:(NSString *)title grayBackground:(BOOL)grayBackground
 {
-    UIButton *button = [[UIButton alloc] initWithFrame:rect];
+    UIButton *button = [[UIButton alloc] init];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
     CGFloat fontSize = 25.0f;
 
     if (![[NSCharacterSet decimalDigitCharacterSet] isSupersetOfSet:[NSCharacterSet characterSetWithCharactersInString:title]]) {
@@ -101,40 +148,17 @@ static UIColor *sGrayColour = nil;
     [button addTarget:self action:@selector(changeTextFieldText:) forControlEvents:UIControlEventTouchUpInside];
 
     [self addSubview:button];
+    
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:self.deleteButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:button attribute:NSLayoutAttributeWidth multiplier:1 constant:0]];
+    [self addConstraint:[NSLayoutConstraint constraintWithItem:self.deleteButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:button attribute:NSLayoutAttributeHeight multiplier:1 constant:0]];
+    
+    return button;
 }
 
 - (NSString *)buttonTitleForNumber:(NSInteger)num
 {
-    NSString *str = [NSString stringWithFormat:@"%ld", (long)num];
-
-    if (num <= 15) {
-        if (num >= 10) {
-            str = @[@"A", @"B", @"C", @"D", @"E", @"F"][num - 10];
-        }
-    }
-    else {
-        str = @"F#%K";
-    }
-
-    return str;
-}
-
-- (CGPoint)buttonOriginPointForNumber:(NSInteger)num
-{
-    CGPoint point = CGPointMake(0.0f, 0.0f);
-
-    if ((num % 3) == 2) { /* 2nd button in the row */
-        point.x = ceil(self.bounds.size.width / 3.0f);
-    }
-    else if ((num % 3) == 0) { /* 3rd button in the row */
-        point.x = ceil((self.bounds.size.width / 3.0f * 2.0f));
-    }
-
-    if (num > 3) { /* The row multiplied by row's height */
-        point.y = floor((num - 1) / 3.0f) * (kKeyboardHeight / 6.0f);
-    }
-
-    return point;
+    unichar c = num < 0xA ? num + 0x30 : num + 0x37;
+    return [NSString stringWithCharacters:&c length:1];
 }
 
 - (void)changeButtonBackgroundColourForHighlight:(UIButton *)button
@@ -162,23 +186,24 @@ static UIColor *sGrayColour = nil;
                     [string appendString:@" 0x"];
                 }
             }
-            else if (string.length == 0) {
-                [string appendFormat:@"0x%@", button.titleLabel.text];
-            }
-            else {
-                if (string.length > 2) {
-                    NSString *lastTwoChars = [string substringFromIndex:(string.length - 2)];
-
-                    if ([lastTwoChars rangeOfString:@"x"].location == NSNotFound) {
-                        [string appendFormat:@" 0x%@", button.titleLabel.text];
-                    }
-                    else {
+            else if(self.add0x) {
+                if (string.length == 0) {
+                    [string appendFormat:@"0x%@", button.titleLabel.text];
+                } else {
+                    if (string.length > 2) {
+                        NSString *lastTwoChars = [string substringFromIndex:(string.length - 2)];
+                        
+                        if ([lastTwoChars rangeOfString:@"x"].location == NSNotFound) {
+                            [string appendFormat:@" 0x%@", button.titleLabel.text];
+                        } else {
+                            [string appendString:button.titleLabel.text];
+                        }
+                    } else {
                         [string appendString:button.titleLabel.text];
                     }
                 }
-                else {
-                    [string appendString:button.titleLabel.text];
-                }
+            } else {
+                [string appendString:button.titleLabel.text];
             }
         }
         else if (_textField.text.length > 0) {
