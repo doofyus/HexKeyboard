@@ -241,7 +241,8 @@ static UIColor *sGrayColour = nil;
     
     NSString *text = button.titleLabel.text;
     if ([_input respondsToSelector:@selector(shouldChangeTextInRange:replacementText:)]) {
-        if ([_input shouldChangeTextInRange:[_input selectedTextRange] replacementText:text]) {
+        UITextRange *tr = [_input selectedTextRange];
+        if (tr != nil && [_input shouldChangeTextInRange:(UITextRange * _Nonnull)tr replacementText:text]) {
             [_input insertText:text];
         }
     } else if (_tfShouldChange) {
