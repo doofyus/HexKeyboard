@@ -5,7 +5,7 @@
 //  Copyright (c) 2013 Mikk Rätsep. All rights reserved.
 //
 
-@import UIKit;
+#import <UIKit/UIKit.h>
 
 @interface MRHexKeyboard : UIView <UITextFieldDelegate>
 
