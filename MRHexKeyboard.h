@@ -9,7 +9,6 @@
 
 @interface MRHexKeyboard : UIView <UITextFieldDelegate>
 
-@property(nonatomic, assign) CGFloat height;
 
 @property(nonatomic, assign) BOOL display0xButton;
 
