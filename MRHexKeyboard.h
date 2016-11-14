@@ -5,11 +5,10 @@
 //  Copyright (c) 2013 Mikk Rätsep. All rights reserved.
 //
 
-@import UIKit;
+#import <UIKit/UIKit.h>
 
 @interface MRHexKeyboard : UIView <UITextFieldDelegate>
 
-@property(nonatomic, assign) CGFloat height;
 
 @property(nonatomic, assign) BOOL display0xButton;
 

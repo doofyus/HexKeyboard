@@ -26,8 +26,6 @@
 
 @end
 
-CGFloat minKeyboardHeight;
-
 static UIColor *sGrayColour = nil;
 
 @interface MRHexKeyboard () <UIInputViewAudioFeedback>
@@ -54,9 +52,10 @@ static UIColor *sGrayColour = nil;
     self = [super init];
 
     if (self) {
-        minKeyboardHeight = MIN([UIScreen mainScreen].bounds.size.width - 100, 305);
-        _height = minKeyboardHeight;
-
+        
+        self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        self.translatesAutoresizingMaskIntoConstraints = YES;
+        
         sGrayColour = [UIColor lightTextColor];
 
         self.backgroundColor = [UIColor lightGrayColor];
@@ -69,6 +68,9 @@ static UIColor *sGrayColour = nil;
         
         button.backgroundColor = sGrayColour;
         [button setImage:[UIImage imageNamed:@"deleteButton"] forState:UIControlStateNormal];
+        if([button respondsToSelector:@selector(imageView)]) {
+            button.imageView.contentMode = UIViewContentModeCenter;
+        }
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDown];
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragEnter];
         [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragExit];
@@ -141,15 +143,6 @@ static UIColor *sGrayColour = nil;
 - (void)setDisplay0xButton:(BOOL)display0xButton {
     _display0xButton = display0xButton;
     self.zeroxButton.hidden = !_display0xButton;
-}
-
-- (void)setHeight:(CGFloat)height {
-    height = MAX(height, minKeyboardHeight);
-    CGRect frame = self.frame;
-    frame.size.height = height;
-    frame.origin.y += _height - height;
-    _height = height;
-    self.frame = frame;
 }
 
 - (void)updateConstraints {
