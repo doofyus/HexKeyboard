@@ -147,35 +147,65 @@ static UIColor *sGrayColour = nil;
 
 - (void)updateConstraints {
     [super updateConstraints];
+    NSLayoutYAxisAnchor * topLayoutAnchor;
+    NSLayoutYAxisAnchor * bottomLayoutAnchor;
+    NSLayoutXAxisAnchor * leftLayoutAnchor;
+    NSLayoutXAxisAnchor * rightLayoutAnchor;
+    if (@available(iOS 11.0, *)) {
+        topLayoutAnchor = self.safeAreaLayoutGuide.topAnchor;
+        bottomLayoutAnchor = self.safeAreaLayoutGuide.bottomAnchor;
+        leftLayoutAnchor = self.safeAreaLayoutGuide.leftAnchor;
+        rightLayoutAnchor = self.safeAreaLayoutGuide.rightAnchor;
+    } else {
+        topLayoutAnchor = self.topAnchor;
+        bottomLayoutAnchor = self.bottomAnchor;
+        leftLayoutAnchor = self.leftAnchor;
+        rightLayoutAnchor = self.rightAnchor;
+    }
     [self removeConstraints:self.positionConstraints];
     NSMutableArray <NSLayoutConstraint *> * constraints = [NSMutableArray arrayWithCapacity:45];
     if(self.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) {
         for(NSInteger num = 0; num < 15; num += 3) {
-            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2]}];
+            [NSLayoutConstraint activateConstraints:@[
+                                                      [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
+                                                      [rightLayoutAnchor constraintEqualToAnchor:self.numberButtons[num+2].rightAnchor]
+                                                      ]];
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2]}];
             [constraints addObjectsFromArray:cs];
         }
-        NSArray * lastButtons = @[self.zeroxButton, self.zeroButton, self.deleteButton];
-        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
+        NSArray<UIView *> * lastButtons = @[self.zeroxButton, self.zeroButton, self.deleteButton];
+        [NSLayoutConstraint activateConstraints:@[
+                                                  [leftLayoutAnchor constraintEqualToAnchor:lastButtons[0].leftAnchor],
+                                                  [rightLayoutAnchor constraintEqualToAnchor:lastButtons[2].rightAnchor]
+                                                  ]];
+        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
         [constraints addObjectsFromArray:cs];
         
         for(NSInteger num = 0; num < 3; num += 1) {
-            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+3],@"b3":self.numberButtons[num+6],@"b4":self.numberButtons[num+9],@"b5":self.numberButtons[num+12],@"b6":lastButtons[num]}];
+            [[bottomLayoutAnchor constraintEqualToAnchor:lastButtons[num].bottomAnchor] setActive:YES];
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+3],@"b3":self.numberButtons[num+6],@"b4":self.numberButtons[num+9],@"b5":self.numberButtons[num+12],@"b6":lastButtons[num]}];
             [constraints addObjectsFromArray:cs];
         }
     } else {
-        NSArray * lastButtons = @[self.zeroButton, self.zeroxButton, self.deleteButton];
+        NSArray<UIView *> * lastButtons = @[self.zeroButton, self.zeroxButton, self.deleteButton];
         for(NSInteger num = 0; num < 15; num += 5) {
-            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2],@"b4":self.numberButtons[num+3],@"b5":self.numberButtons[num+4],@"b6":lastButtons[num/5]}];
+            [NSLayoutConstraint activateConstraints:@[
+                                                      [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
+                                                      [rightLayoutAnchor constraintEqualToAnchor:lastButtons[num/5].rightAnchor]
+                                                      ]];
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2],@"b4":self.numberButtons[num+3],@"b5":self.numberButtons[num+4],@"b6":lastButtons[num/5]}];
             [constraints addObjectsFromArray:cs];
         }
         
         
         for(NSInteger num = 0; num < 5; num += 1) {
-            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+5],@"b3":self.numberButtons[num+10]}];
+            [[bottomLayoutAnchor constraintEqualToAnchor:self.numberButtons[num+10].bottomAnchor] setActive:YES];
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+5],@"b3":self.numberButtons[num+10]}];
             [constraints addObjectsFromArray:cs];
         }
         
-        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]|" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
+        [[bottomLayoutAnchor constraintEqualToAnchor:lastButtons[2].bottomAnchor] setActive:YES];
+        NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
         [constraints addObjectsFromArray:cs];
     }
     self.positionConstraints = constraints;
