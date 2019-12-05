@@ -9,7 +9,6 @@
 
 @interface MRHexKeyboard : UIView <UITextFieldDelegate>
 
-
 @property(nonatomic, assign) BOOL display0xButton;
 
 @property(nonatomic, assign) BOOL add0x;

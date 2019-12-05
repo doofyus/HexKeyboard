@@ -50,14 +50,14 @@ static UIColor *sGrayColour = nil;
 - (instancetype)init
 {
     self = [super init];
-
+    
     if (self) {
         
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.translatesAutoresizingMaskIntoConstraints = YES;
         
         sGrayColour = [UIColor lightTextColor];
-
+        
         self.backgroundColor = [UIColor lightGrayColor];
         
         _display0xButton = YES;
@@ -67,7 +67,16 @@ static UIColor *sGrayColour = nil;
         button.translatesAutoresizingMaskIntoConstraints = NO;
         
         button.backgroundColor = sGrayColour;
-        [button setImage:[UIImage imageNamed:@"deleteButton"] forState:UIControlStateNormal];
+        UIImage *image;
+        if (@available(iOS 13.0, *)) {
+            NSBundle *bundle = [NSBundle bundleForClass:self.class];
+            image = [UIImage imageNamed:@"deleteButton"
+                               inBundle:bundle
+                      withConfiguration:NULL];
+        } else {
+            image = [UIImage imageNamed:@"deleteButton"];
+        }
+        [button setImage:image forState:UIControlStateNormal];
         if([button respondsToSelector:@selector(imageView)]) {
             button.imageView.contentMode = UIViewContentModeCenter;
         }
@@ -79,7 +88,7 @@ static UIColor *sGrayColour = nil;
         [self addSubview:button];
         
         self.deleteButton = button;
-
+        
         NSMutableArray<UIButton *> * buttons = [NSMutableArray arrayWithCapacity:15];
         /* Makes the numerical buttons */
         for (NSInteger num = 1; num <= 15; num++) {
@@ -167,32 +176,32 @@ static UIColor *sGrayColour = nil;
     if(self.traitCollection.horizontalSizeClass == UIUserInterfaceSizeClassCompact) {
         for(NSInteger num = 0; num < 15; num += 3) {
             [NSLayoutConstraint activateConstraints:@[
-                                                      [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
-                                                      [rightLayoutAnchor constraintEqualToAnchor:self.numberButtons[num+2].rightAnchor]
-                                                      ]];
+                [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
+                [rightLayoutAnchor constraintEqualToAnchor:self.numberButtons[num+2].rightAnchor]
+            ]];
             NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2]}];
             [constraints addObjectsFromArray:cs];
         }
         NSArray<UIView *> * lastButtons = @[self.zeroxButton, self.zeroButton, self.deleteButton];
         [NSLayoutConstraint activateConstraints:@[
-                                                  [leftLayoutAnchor constraintEqualToAnchor:lastButtons[0].leftAnchor],
-                                                  [rightLayoutAnchor constraintEqualToAnchor:lastButtons[2].rightAnchor]
-                                                  ]];
+            [leftLayoutAnchor constraintEqualToAnchor:lastButtons[0].leftAnchor],
+            [rightLayoutAnchor constraintEqualToAnchor:lastButtons[2].rightAnchor]
+        ]];
         NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]" options:0 metrics:nil views:@{@"b1":lastButtons[0],@"b2":lastButtons[1],@"b3":lastButtons[2]}];
         [constraints addObjectsFromArray:cs];
         
         for(NSInteger num = 0; num < 3; num += 1) {
             [[bottomLayoutAnchor constraintEqualToAnchor:lastButtons[num].bottomAnchor] setActive:YES];
-            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+3],@"b3":self.numberButtons[num+6],@"b4":self.numberButtons[num+9],@"b5":self.numberButtons[num+12],@"b6":lastButtons[num]}];
+            NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|-1-[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+3],@"b3":self.numberButtons[num+6],@"b4":self.numberButtons[num+9],@"b5":self.numberButtons[num+12],@"b6":lastButtons[num]}];
             [constraints addObjectsFromArray:cs];
         }
     } else {
         NSArray<UIView *> * lastButtons = @[self.zeroButton, self.zeroxButton, self.deleteButton];
         for(NSInteger num = 0; num < 15; num += 5) {
             [NSLayoutConstraint activateConstraints:@[
-                                                      [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
-                                                      [rightLayoutAnchor constraintEqualToAnchor:lastButtons[num/5].rightAnchor]
-                                                      ]];
+                [leftLayoutAnchor constraintEqualToAnchor:self.numberButtons[num].leftAnchor],
+                [rightLayoutAnchor constraintEqualToAnchor:lastButtons[num/5].rightAnchor]
+            ]];
             NSArray <NSLayoutConstraint *> * cs = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[b1]-1-[b2]-1-[b3]-1-[b4]-1-[b5]-1-[b6]" options:0 metrics:nil views:@{@"b1":self.numberButtons[num],@"b2":self.numberButtons[num+1],@"b3":self.numberButtons[num+2],@"b4":self.numberButtons[num+3],@"b5":self.numberButtons[num+4],@"b6":lastButtons[num/5]}];
             [constraints addObjectsFromArray:cs];
         }
@@ -217,21 +226,21 @@ static UIColor *sGrayColour = nil;
     UIButton *button = [[UIButton alloc] init];
     button.translatesAutoresizingMaskIntoConstraints = NO;
     CGFloat fontSize = 25.0f;
-
+    
     if (![[NSCharacterSet decimalDigitCharacterSet] isSupersetOfSet:[NSCharacterSet characterSetWithCharactersInString:title]]) {
         fontSize = 20.0f;
     }
-
+    
     button.backgroundColor = (grayBackground) ? sGrayColour : [UIColor whiteColor];
     button.titleLabel.font = [UIFont systemFontOfSize:fontSize];
-
+    
     [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     [button setTitle:title forState:UIControlStateNormal];
     [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDown];
     [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragEnter];
     [button addTarget:self action:@selector(changeButtonBackgroundColourForHighlight:) forControlEvents:UIControlEventTouchDragExit];
     [button addTarget:self action:@selector(changeTextFieldText:) forControlEvents:UIControlEventTouchUpInside];
-
+    
     [self addSubview:button];
     
     [self addConstraint:[NSLayoutConstraint constraintWithItem:self.deleteButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:button attribute:NSLayoutAttributeWidth multiplier:1 constant:0]];
@@ -249,11 +258,11 @@ static UIColor *sGrayColour = nil;
 - (void)changeButtonBackgroundColourForHighlight:(UIButton *)button
 {
     UIColor *newColour = sGrayColour;
-
+    
     if ([button.backgroundColor isEqual:sGrayColour]) {
         newColour = [UIColor whiteColor];
     }
-
+    
     button.backgroundColor = newColour;
 }
 
